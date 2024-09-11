@@ -51,3 +51,49 @@ def parse_json(data):
 ######################################################################
 # INSERT CODE HERE
 ######################################################################
+
+@app.route("/health",methods=["GET"])
+def health():
+    return {"status":"OK"},200
+
+@app.route("/count",methods=["GET"])
+def count():
+    if songs_list:
+        count = len(songs_list)
+        return {"count": str(count)},200
+
+    return {"Message": "Internal Server Error"},500
+
+@app.route("/song",methods=["GET"])
+def songs():
+    songs = db.songs.find({})
+    songList = []
+    for song in songs:
+        songList.append(song)
+    serializedList = json_util.dumps(songList)
+    decodedList = json.loads(serializedList)
+    return {"songs": decodedList},200
+
+@app.route("/song/<int:id>", methods=["GET"])
+def get_song_by_id(id):
+    song = db.songs.find({"id":id})
+    try: 
+        cursorSong = song.next()
+        serializedSong = json_util.dumps(cursorSong)
+        decodedSong = json.loads(serializedSong)
+        return decodedSong, 200
+    finally:
+        return {"message": "song with id not found"},404
+
+@app.route("/song", methods=["POST"])
+def create_song():
+    data = request.json
+    print(data)
+    copies = db.song.find_one({"id":data["id"]})
+    print(copies)
+    if copies is None:
+        result = db.songs.insert_one(data)
+        print(result)
+        return {"inserted id": str(result.inserted_id)},201
+    else:
+        return {"Message": "song with id " + str(data["id"]) + " already present"},302
